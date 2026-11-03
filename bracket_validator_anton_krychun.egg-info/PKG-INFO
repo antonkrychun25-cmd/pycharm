@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: bracket-validator-anton-krychun
+Version: 0.1.0
+Summary: Лабораторна робота 5: Валідатор дужок
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# Bracket Validator Lab 5
+
+Пакет для перевірки балансу дужок у рядках.

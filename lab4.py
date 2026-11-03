@@ -31,7 +31,7 @@ def analyze_traffic(path_to_log):
     sum_sent = 0
 
     with open(path_to_log, "r", encoding="utf-8", errors="ignore") as file_stream:
-        # Рахуємо вхідний і вихідний трафік за один цикл
+
         for read_bytes, sent_bytes in parse_log_entries(file_stream):
             sum_received += read_bytes
             sum_sent += sent_bytes

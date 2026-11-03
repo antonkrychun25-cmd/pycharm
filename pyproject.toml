@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bracket-validator-anton-krychun"
+version = "0.1.0"
+description = "Лабораторна робота 5: Валідатор дужок"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+py-modules = ["lab5"]
+
+[project.scripts]
+bracket-validator = "lab5:main"

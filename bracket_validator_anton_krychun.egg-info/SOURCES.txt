@@ -1,0 +1,8 @@
+README.md
+lab5.py
+pyproject.toml
+bracket_validator_anton_krychun.egg-info/PKG-INFO
+bracket_validator_anton_krychun.egg-info/SOURCES.txt
+bracket_validator_anton_krychun.egg-info/dependency_links.txt
+bracket_validator_anton_krychun.egg-info/entry_points.txt
+bracket_validator_anton_krychun.egg-info/top_level.txt
