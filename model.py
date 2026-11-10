@@ -5,73 +5,74 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 
-class TaskStatus(Enum):
-    TODO = "Todo"
+class TaskState(Enum):
+    PENDING = "Pending"
     IN_PROGRESS = "In Progress"
-    COMPLETED = "Completed"
+    DONE = "Done"
 
 
 @dataclass
-class Task:
-    description: str
-    scheduled_at: datetime
-    id: UUID = field(default_factory=uuid4)
-    created_at: datetime = field(default_factory=datetime.now)
-    status: TaskStatus = TaskStatus.TODO
+class TodoItem:
+    content: str
+    target_time: datetime
+    uid: UUID = field(default_factory=uuid4)
+    timestamp: datetime = field(default_factory=datetime.now)
+    state: TaskState = TaskState.PENDING
 
-    def change_status(self, new_status: TaskStatus) -> None:
-        self.status = new_status
+    def set_state(self, new_state: TaskState) -> None:
+        self.state = new_state
 
 
-class TaskManager:
+class TaskRepository:
+
     def __init__(self):
-        self.tasks: dict[UUID, Task] = {}
+        self.repository: dict[UUID, TodoItem] = {}
 
-    def add_task(self, description: str, scheduled_at: datetime) -> Task:
-        task = Task(description=description, scheduled_at=scheduled_at)
-        self.tasks[task.id] = task
-        return task
+    def create_item(self, content: str, target_time: datetime) -> TodoItem:
+        item = TodoItem(content=content, target_time=target_time)
+        self.repository[item.uid] = item
+        return item
 
-    def get_task(self, task_id: UUID) -> Task | None:
-        if task_id not in self.tasks:
-            raise ValueError("Task with such ID does not exist.")
-        return self.tasks.get(task_id)
+    def fetch_by_id(self, item_id: UUID) -> TodoItem | None:
+        if item_id not in self.repository:
+            raise ValueError("Item with specified UUID does not exist.")
+        return self.repository.get(item_id)
 
-    def get_tasks(self) -> list[Task]:
-        return list(self.tasks.values())
+    def fetch_all(self) -> list[TodoItem]:
+        return list(self.repository.values())
 
-    def update_task(
+    def modify_item(
         self,
-        task_id: UUID,
-        description: str = None,
-        scheduled_at: datetime = None,
-        status: TaskStatus = None,
-    ) -> Task | None:
+        item_id: UUID,
+        content: str = None,
+        target_time: datetime = None,
+        state: TaskState = None,
+    ) -> TodoItem | None:
         try:
-            task = self.get_task(task_id)
+            item = self.fetch_by_id(item_id)
         except ValueError:
             return None
 
-        if not task:
+        if not item:
             return None
-        if description is not None:
-            task.description = description
-        if scheduled_at is not None:
-            task.scheduled_at = scheduled_at
-        if status is not None:
-            task.change_status(status)
-        return task
+        if content is not None:
+            item.content = content
+        if target_time is not None:
+            item.target_time = target_time
+        if state is not None:
+            item.set_state(state)
+        return item
 
-    def delete_task(self, task_id: UUID) -> bool:
+    def remove_item(self, item_id: UUID) -> bool:
         try:
-            task = self.get_task(task_id)
+            item = self.fetch_by_id(item_id)
         except ValueError:
             return False
 
-        if task:
-            self.tasks.pop(task_id)
+        if item:
+            self.repository.pop(item_id)
             return True
         return False
 
-    def filter_by_status(self, status: TaskStatus) -> list[Task]:
-        return [t for t in self.tasks.values() if t.status == status]
+    def filter_by_state(self, state: TaskState) -> list[TodoItem]:
+        return [itm for itm in self.repository.values() if itm.state == state]

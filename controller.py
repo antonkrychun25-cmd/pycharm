@@ -1,166 +1,163 @@
 from datetime import datetime
 from uuid import UUID
-from model import TaskManager, TaskStatus
-from mvc import ConsoleView
+from model import TaskRepository, TaskState
+from mvc import AppView
 
 
-class TaskController:
+class AppController:
 
     def __init__(self):
-        self.task_manager = TaskManager()
-        self.console_view = ConsoleView()
+        self.repo = TaskRepository()
+        self.view = AppView()
 
-    def create_task_flow(self):
-        description_text = input("Enter task description: ").strip()
-        if not description_text:
-            self.console_view.display_error("Task description cannot be empty!")
+    def process_add_task(self):
+        text_input = input("Enter task text: ").strip()
+        if not text_input:
+            self.view.show_alert("Task text cannot be empty!")
             return
 
-        date_input = input(
-            "Enter scheduled date and time (format: YYYY-MM-DD HH:MM): "
+        raw_date = input(
+            "Enter target date (format: YYYY-MM-DD HH:MM): "
         ).strip()
-
-        # Нормализуем пробелы, чтобы избежать ошибок парсинга
-        date_input = " ".join(date_input.split())
+        raw_date = " ".join(raw_date.split())
 
         try:
-            scheduled_date = datetime.strptime(date_input, "%Y-%m-%d %H:%M")
+            parsed_date = datetime.strptime(raw_date, "%Y-%m-%d %H:%M")
         except ValueError:
-            self.console_view.display_error(
-                "Incorrect datetime format! Please use YYYY-MM-DD HH:MM."
+            self.view.show_alert(
+                "Invalid datetime format! Use YYYY-MM-DD HH:MM."
             )
             return
 
-        created_task = self.task_manager.add_task(
-            description=description_text, scheduled_at=scheduled_date
+        created_entry = self.repo.create_item(
+            content=text_input, target_time=parsed_date
         )
-        self.console_view.display_message(
-            f"New task created successfully. Assigned ID: {created_task.id}"
+        self.view.show_info(
+            f"Record created successfully. ID: {created_entry.uid}"
         )
 
-    def change_status_flow(self):
-        input_id = input("Enter target task ID for status update: ").strip()
+    def process_change_state(self):
+        id_str = input("Enter item ID to update status: ").strip()
         try:
-            target_uuid = UUID(input_id)
+            target_uuid = UUID(id_str)
         except ValueError:
-            self.console_view.display_error("Invalid UUID syntax!")
+            self.view.show_alert("Invalid UUID format!")
             return
 
         try:
-            existing_task = self.task_manager.get_task(target_uuid)
+            target_item = self.repo.fetch_by_id(target_uuid)
         except ValueError:
-            existing_task = None
+            target_item = None
 
-        if not existing_task:
-            self.console_view.display_error("Specified task ID does not exist!")
+        if not target_item:
+            self.view.show_alert("Task record does not exist!")
             return
 
-        print("Select new task state:")
+        print("Select new state:")
         print("1. In Progress")
-        print("2. Completed")
-        option = input("Enter option (1-2): ").strip()
+        print("2. Done")
+        opt = input("Choice (1-2): ").strip()
 
-        if option == "1":
-            updated_status = TaskStatus.IN_PROGRESS
-        elif option == "2":
-            updated_status = TaskStatus.COMPLETED
+        if opt == "1":
+            new_st = TaskState.IN_PROGRESS
+        elif opt == "2":
+            new_st = TaskState.DONE
         else:
-            self.console_view.display_error("Invalid selection option!")
+            self.view.show_alert("Unknown state option!")
             return
 
-        self.task_manager.update_task(target_uuid, status=updated_status)
-        self.console_view.display_message("Task status successfully updated!")
+        self.repo.modify_item(target_uuid, state=new_st)
+        self.view.show_info("Status updated successfully!")
 
-    def delete_task_flow(self):
-        input_id = input("Enter task ID to remove: ").strip()
+    def process_delete_task(self):
+        id_str = input("Enter item ID to delete: ").strip()
         try:
-            target_uuid = UUID(input_id)
+            target_uuid = UUID(id_str)
         except ValueError:
-            self.console_view.display_error("Invalid UUID syntax!")
+            self.view.show_alert("Invalid UUID format!")
             return
 
-        is_deleted = self.task_manager.delete_task(target_uuid)
-        if is_deleted:
-            self.console_view.display_message("Task was permanently removed!")
+        success = self.repo.remove_item(target_uuid)
+        if success:
+            self.view.show_info("Record deleted successfully!")
         else:
-            self.console_view.display_error("Could not find task with this ID!")
+            self.view.show_alert("Record with this ID was not found!")
 
-    def update_task_flow(self):
-        input_id = input("Enter task ID to modify: ").strip()
+    def process_edit_task(self):
+        id_str = input("Enter item ID to edit: ").strip()
         try:
-            target_uuid = UUID(input_id)
+            target_uuid = UUID(id_str)
         except ValueError:
-            self.console_view.display_error("Invalid UUID syntax!")
+            self.view.show_alert("Invalid UUID format!")
             return
 
         try:
-            current_task = self.task_manager.get_task(target_uuid)
+            curr_item = self.repo.fetch_by_id(target_uuid)
         except ValueError:
-            current_task = None
+            curr_item = None
 
-        if not current_task:
-            self.console_view.display_error("Specified task ID does not exist!")
+        if not curr_item:
+            self.view.show_alert("Task record does not exist!")
             return
 
-        print("Press Enter without typing to skip updating a field.")
-        updated_desc = (
-                input(f"New description [{current_task.description}]: ").strip()
-                or None
+        print("Leave empty to keep existing value.")
+        new_content = (
+            input(f"New content [{curr_item.content}]: ").strip() or None
         )
 
-        formatted_time = current_task.scheduled_at.strftime("%Y-%m-%d %H:%M")
-        raw_time = input(f"New scheduled time [{formatted_time}]: ").strip()
-        updated_schedule = None
+        old_dt = curr_item.target_time.strftime("%Y-%m-%d %H:%M")
+        dt_input = input(f"New target date [{old_dt}]: ").strip()
+        new_dt = None
 
-        if raw_time:
-            raw_time = " ".join(raw_time.split())
+        if dt_input:
+            dt_input = " ".join(dt_input.split())
             try:
-                updated_schedule = datetime.strptime(raw_time, "%Y-%m-%d %H:%M")
+                new_dt = datetime.strptime(dt_input, "%Y-%m-%d %H:%M")
             except ValueError:
-                self.console_view.display_error(
-                    "Invalid datetime format. Schedule remained unchanged."
+                self.view.show_alert(
+                    "Invalid date format. Time left unchanged."
                 )
 
-        self.task_manager.update_task(
-            target_uuid, description=updated_desc, scheduled_at=updated_schedule
+        self.repo.modify_item(
+            target_uuid, content=new_content, target_time=new_dt
         )
-        self.console_view.display_message("Task details successfully modified!")
+        self.view.show_info("Task record modified successfully!")
 
-    def show_all_tasks_flow(self):
-        all_tasks = self.task_manager.get_tasks()
-        self.console_view.display_task_table(all_tasks)
+    def process_show_all(self):
+        all_records = self.repo.fetch_all()
+        self.view.render_table(all_records)
 
-    def filter_tasks_flow(self):
-        print("Select status for filtering:")
-        print("1. ToDo")
+    def process_filter_by_state(self):
+        print("Select status filter:")
+        print("1. Pending")
         print("2. In Progress")
-        print("3. Completed")
-        choice_option = input("Your selection (1-3): ").strip()
+        print("3. Done")
+        num_choice = input("Option (1-3): ").strip()
 
-        available_statuses = {
-            "1": TaskStatus.TODO,
-            "2": TaskStatus.IN_PROGRESS,
-            "3": TaskStatus.COMPLETED,
+        status_map = {
+            "1": TaskState.PENDING,
+            "2": TaskState.IN_PROGRESS,
+            "3": TaskState.DONE,
         }
-        selected_status = available_statuses.get(choice_option)
-        if not selected_status:
-            self.console_view.display_error("Invalid filtering choice!")
+        selected_st = status_map.get(num_choice)
+        if not selected_st:
+            self.view.show_alert("Invalid selection choice!")
             return
 
-        filtered_list = self.task_manager.filter_by_status(selected_status)
-        self.console_view.display_task_table(filtered_list)
+        results = self.repo.filter_by_state(selected_st)
+        self.view.render_table(results)
 
-    def show_task_by_id_flow(self):
-        input_id = input("Enter task ID to view: ").strip()
+    def process_show_by_id(self):
+        id_str = input("Enter item ID to inspect: ").strip()
         try:
-            target_uuid = UUID(input_id)
+            target_uuid = UUID(id_str)
         except ValueError:
-            self.console_view.display_error("Invalid UUID syntax!")
+            self.view.show_alert("Invalid UUID format!")
             return
 
         try:
-            target_task = self.task_manager.get_task(target_uuid)
+            found_item = self.repo.fetch_by_id(target_uuid)
         except ValueError:
-            target_task = None
+            found_item = None
 
-        self.console_view.display_single_task(target_task)
+        self.view.render_item(found_item)

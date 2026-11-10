@@ -1,49 +1,49 @@
 from __future__ import annotations
-from model import Task
+from model import TodoItem
 
 
-class ConsoleView:
-
-    @staticmethod
-    def display_message(message: str):
-        print(f"\n[INFO] {message}")
+class AppView:
 
     @staticmethod
-    def display_error(message: str):
-        print(f"\n[ERROR] {message}")
+    def show_info(msg: str):
+        print(f"\n[SUCCESS] {msg}")
 
     @staticmethod
-    def display_task_table(tasks: list[Task]):
-        if not tasks:
-            print("\n[!] Tasks list is empty.")
+    def show_alert(msg: str):
+        print(f"\n[WARNING] {msg}")
+
+    @staticmethod
+    def render_table(items: list[TodoItem]):
+        if not items:
+            print("\n[!] No records found in database.")
             return
 
         header = (
-            f"{'ID':<36} | {'Status':<12} | {'Scheduled at':<19} |"
-            f" {'Created at':<19} | {'Description':<30}"
+            f"{'UUID':<36} | {'Status':<12} | {'Target Time':<19} |"
+            f" {'Created At':<19} | {'Task Content':<30}"
         )
-        separator = "=" * len(header)
-        print("\n" + separator)
+        line = "-" * len(header)
+        print("\n" + line)
         print(header)
-        print(separator)
-        for t in tasks:
-            sched = t.scheduled_at.strftime("%Y-%m-%d %H:%M")
-            created = t.created_at.strftime("%Y-%m-%d %H:%M")
+        print(line)
+        for entry in items:
+            t_time = entry.target_time.strftime("%Y-%m-%d %H:%M")
+            c_time = entry.timestamp.strftime("%Y-%m-%d %H:%M")
             print(
-                f"{str(t.id):<36} | {t.status.value:<12} | {sched:<19} |"
-                f" {created:<19} | {t.description:<30}"
+                f"{str(entry.uid):<36} | {entry.state.value:<12} | {t_time:<19} |"
+                f" {c_time:<19} | {entry.content:<30}"
             )
-        print(separator + "\n")
+        print(line + "\n")
 
     @staticmethod
-    def display_single_task(task: Task | None):
-        if not task:
-            print("\n[ERROR] Task with such ID does not exist.")
+    def render_item(item: TodoItem | None):
+        if not item:
+            print("\n[WARNING] Task record was not found.")
             return
-        print("\n--- Task Details ---")
-        print(f"ID:           {task.id}")
-        print(f"Description:  {task.description}")
-        print(f"Status:       {task.status.value}")
-        print(f"Scheduled at: {task.scheduled_at.strftime('%Y-%m-%d %H:%M')}")
-        print(f"Created at:   {task.created_at.strftime('%Y-%m-%d %H:%M')}")
+        print("\n=== Item Overview ===")
+        print(f"ID:          {item.uid}")
+        print(f"Content:     {item.content}")
+        print(f"Status:      {item.state.value}")
+        print(f"Scheduled:   {item.target_time.strftime('%Y-%m-%d %H:%M')}")
+        print(f"Created:     {item.timestamp.strftime('%Y-%m-%d %H:%M')}")
         print("=" * 38)

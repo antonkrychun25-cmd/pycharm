@@ -3,61 +3,57 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from model import TaskManager, TaskStatus
+from model import TaskRepository, TaskState
 import lab7
 
 
-class TestTaskManagerModel(unittest.TestCase):
-
+class TestRepositoryCore(unittest.TestCase):
 
     def setUp(self):
-        self.manager = TaskManager()
-        self.now = datetime.now()
+        self.repo = TaskRepository()
+        self.current_dt = datetime.now()
 
-    def test_model_methods(self):
+    def test_repository_actions(self):
+        item = self.repo.create_item("Test content", self.current_dt)
+        self.assertEqual(self.repo.fetch_by_id(item.uid), item)
+        self.assertEqual(len(self.repo.fetch_all()), 1)
 
-        task = self.manager.add_task("Test task", self.now)
-        self.assertEqual(self.manager.get_task(task.id), task)
-        self.assertEqual(len(self.manager.get_tasks()), 1)
+        self.repo.modify_item(
+            item.uid, content="Updated", state=TaskState.DONE
+        )
+        self.assertEqual(item.state, TaskState.DONE)
+        self.assertEqual(len(self.repo.filter_by_state(TaskState.DONE)), 1)
 
-
-        self.manager.update_task(task.id, description="New desc", status=TaskStatus.COMPLETED)
-        self.assertEqual(task.status, TaskStatus.COMPLETED)
-        self.assertEqual(len(self.manager.filter_by_status(TaskStatus.COMPLETED)), 1)
-
-
-        self.assertTrue(self.manager.delete_task(task.id))
-        self.assertFalse(self.manager.delete_task(uuid4()))
-        self.assertIsNone(self.manager.update_task(uuid4(), description="None"))
+        self.assertTrue(self.repo.remove_item(item.uid))
+        self.assertFalse(self.repo.remove_item(uuid4()))
+        self.assertIsNone(self.repo.modify_item(uuid4(), content="None"))
 
         with self.assertRaises(ValueError):
-            self.manager.get_task(uuid4())
+            self.repo.fetch_by_id(uuid4())
 
 
-class TestFullAppScenario(unittest.TestCase):
+class TestApplicationFlow(unittest.TestCase):
 
+    def test_full_menu_execution(self):
+        dummy_uuid = "22222222-2222-2222-2222-222222222222"
 
-    def test_complete_menu_flow(self):
-
-        fake_id = "11111111-1111-1111-1111-111111111111"
-
-        user_inputs = [
-            "1", "Купити хліб", "2026-12-31 15:00",
+        simulated_inputs = [
+            "1", "Buy groceries", "2026-12-31 18:00",
             "5",
             "6", "1",
             "6", "2",
             "6", "3",
             "6", "99",
-            "7", fake_id,
-            "2", fake_id,
-            "3", fake_id,
-            "4", fake_id,
+            "7", dummy_uuid,
+            "2", dummy_uuid,
+            "3", dummy_uuid,
+            "4", dummy_uuid,
             "99",
             "0",
         ]
 
-        with patch("builtins.input", side_effect=user_inputs):
-            lab7.main()
+        with patch("builtins.input", side_effect=simulated_inputs):
+            lab7.run_app()
 
 
 if __name__ == "__main__":
